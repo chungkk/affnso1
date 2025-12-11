@@ -1,0 +1,341 @@
+openapi: 3.0.3
+info:
+  title: Affiliate Landing Pages API
+  version: 1.0.0
+  description: API for managing affiliate landing pages and tracking statistics
+
+servers:
+  - url: /api
+    description: Next.js API routes
+
+paths:
+  # Authentication
+  /auth/login:
+    post:
+      summary: Admin login
+      tags: [Authentication]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [username, password]
+              properties:
+                username:
+                  type: string
+                  minLength: 3
+                  maxLength: 50
+                password:
+                  type: string
+                  minLength: 8
+      responses:
+        '200':
+          description: Login successful
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success: { type: boolean }
+                  message: { type: string }
+        '401':
+          description: Invalid credentials
+        '429':
+          description: Account locked (too many failed attempts)
+
+  /auth/logout:
+    post:
+      summary: Admin logout
+      tags: [Authentication]
+      security:
+        - sessionAuth: []
+      responses:
+        '200':
+          description: Logout successful
+
+  # Landing Pages CRUD
+  /pages:
+    get:
+      summary: List all landing pages
+      tags: [Landing Pages]
+      security:
+        - sessionAuth: []
+      parameters:
+        - name: active
+          in: query
+          schema:
+            type: boolean
+          description: Filter by active status
+      responses:
+        '200':
+          description: List of landing pages
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  pages:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/LandingPage'
+                  total:
+                    type: integer
+
+    post:
+      summary: Create a new landing page
+      tags: [Landing Pages]
+      security:
+        - sessionAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LandingPageInput'
+      responses:
+        '201':
+          description: Page created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LandingPage'
+        '400':
+          description: Validation error
+        '409':
+          description: Slug already exists
+
+  /pages/{id}:
+    get:
+      summary: Get a landing page by ID
+      tags: [Landing Pages]
+      security:
+        - sessionAuth: []
+      parameters:
+        - $ref: '#/components/parameters/PageId'
+      responses:
+        '200':
+          description: Landing page details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LandingPage'
+        '404':
+          description: Page not found
+
+    put:
+      summary: Update a landing page
+      tags: [Landing Pages]
+      security:
+        - sessionAuth: []
+      parameters:
+        - $ref: '#/components/parameters/PageId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LandingPageInput'
+      responses:
+        '200':
+          description: Page updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LandingPage'
+        '400':
+          description: Validation error
+        '404':
+          description: Page not found
+        '409':
+          description: Slug already exists
+
+    delete:
+      summary: Delete a landing page
+      tags: [Landing Pages]
+      security:
+        - sessionAuth: []
+      parameters:
+        - $ref: '#/components/parameters/PageId'
+      responses:
+        '200':
+          description: Page deleted
+        '404':
+          description: Page not found
+
+  # Statistics
+  /stats:
+    get:
+      summary: Get statistics for all pages
+      tags: [Statistics]
+      security:
+        - sessionAuth: []
+      responses:
+        '200':
+          description: Statistics summary
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  stats:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/PageStatistic'
+                  totals:
+                    type: object
+                    properties:
+                      pageViews: { type: integer }
+                      affiliateClicks: { type: integer }
+
+  /stats/{pageId}:
+    get:
+      summary: Get statistics for a specific page
+      tags: [Statistics]
+      security:
+        - sessionAuth: []
+      parameters:
+        - $ref: '#/components/parameters/PageId'
+      responses:
+        '200':
+          description: Page statistics
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PageStatistic'
+        '404':
+          description: Page not found
+
+  # Tracking (public endpoints)
+  /track/view:
+    post:
+      summary: Track page view
+      tags: [Tracking]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [slug]
+              properties:
+                slug:
+                  type: string
+      responses:
+        '200':
+          description: View tracked
+        '404':
+          description: Page not found
+
+  /track/click:
+    post:
+      summary: Track affiliate link click
+      tags: [Tracking]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [slug]
+              properties:
+                slug:
+                  type: string
+      responses:
+        '200':
+          description: Click tracked
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  redirectUrl:
+                    type: string
+                    format: uri
+        '404':
+          description: Page not found
+
+components:
+  securitySchemes:
+    sessionAuth:
+      type: apiKey
+      in: cookie
+      name: next-auth.session-token
+
+  parameters:
+    PageId:
+      name: id
+      in: path
+      required: true
+      schema:
+        type: string
+      description: Landing page MongoDB ObjectId
+
+  schemas:
+    LandingPageInput:
+      type: object
+      required: [slug, title, description, affiliateLink]
+      properties:
+        slug:
+          type: string
+          pattern: '^[a-z0-9-]{3,50}$'
+          example: 'domain-hosting-deal'
+        title:
+          type: string
+          maxLength: 100
+          example: 'Get Your Domain Today'
+        description:
+          type: string
+          maxLength: 500
+          example: 'Best deals on domain registration, hosting, and SSL certificates'
+        affiliateLink:
+          type: string
+          format: uri
+          example: 'https://network-solutions.7eer.net/q4EbgO'
+        templateId:
+          type: integer
+          minimum: 1
+          maximum: 10
+          default: 1
+        isActive:
+          type: boolean
+          default: true
+
+    LandingPage:
+      allOf:
+        - type: object
+          properties:
+            _id:
+              type: string
+            createdAt:
+              type: string
+              format: date-time
+            updatedAt:
+              type: string
+              format: date-time
+        - $ref: '#/components/schemas/LandingPageInput'
+
+    PageStatistic:
+      type: object
+      properties:
+        _id:
+          type: string
+        pageId:
+          type: string
+        slug:
+          type: string
+        title:
+          type: string
+        pageViews:
+          type: integer
+          minimum: 0
+        affiliateClicks:
+          type: integer
+          minimum: 0
+        clickRate:
+          type: number
+          format: float
+          description: affiliateClicks / pageViews percentage
+        updatedAt:
+          type: string
+          format: date-time

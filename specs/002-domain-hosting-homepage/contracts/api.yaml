@@ -1,0 +1,205 @@
+openapi: 3.0.3
+info:
+  title: Homepage Config API
+  description: API endpoints for managing homepage configuration
+  version: 1.0.0
+
+paths:
+  /api/homepage:
+    get:
+      summary: Get homepage configuration
+      description: Retrieve current homepage config (public endpoint for SSR)
+      responses:
+        '200':
+          description: Homepage configuration
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HomepageConfigResponse'
+        '500':
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/admin/homepage:
+    get:
+      summary: Get homepage configuration (admin)
+      description: Retrieve homepage config for admin editing
+      security:
+        - sessionAuth: []
+      responses:
+        '200':
+          description: Homepage configuration
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HomepageConfigResponse'
+        '401':
+          description: Unauthorized
+        '500':
+          description: Server error
+
+    put:
+      summary: Update homepage configuration
+      description: Update homepage links and theme
+      security:
+        - sessionAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/HomepageConfigUpdate'
+      responses:
+        '200':
+          description: Configuration updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HomepageConfigResponse'
+        '400':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Unauthorized
+        '500':
+          description: Server error
+
+  /api/track/homepage-click:
+    post:
+      summary: Track homepage CTA click
+      description: Record affiliate link click from homepage
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - serviceId
+              properties:
+                serviceId:
+                  type: string
+                  description: Service identifier (domain, hosting, ssl)
+      responses:
+        '200':
+          description: Click tracked
+        '400':
+          description: Invalid service ID
+        '500':
+          description: Server error
+
+components:
+  securitySchemes:
+    sessionAuth:
+      type: apiKey
+      in: cookie
+      name: next-auth.session-token
+
+  schemas:
+    Service:
+      type: object
+      required:
+        - id
+        - name
+        - description
+        - icon
+        - isActive
+        - order
+      properties:
+        id:
+          type: string
+          example: domain
+        name:
+          type: string
+          maxLength: 50
+          example: Domain Registration
+        description:
+          type: string
+          maxLength: 200
+          example: Register your perfect domain name
+        affiliateLink:
+          type: string
+          format: uri
+          example: https://affiliate.example.com/domain
+        icon:
+          type: string
+          example: 🌐
+        isActive:
+          type: boolean
+          default: true
+        order:
+          type: integer
+          minimum: 0
+          default: 0
+
+    HomepageConfig:
+      type: object
+      required:
+        - selectedTheme
+        - services
+      properties:
+        _id:
+          type: string
+          example: homepage
+        selectedTheme:
+          type: integer
+          minimum: 1
+          maximum: 10
+          default: 1
+        services:
+          type: array
+          items:
+            $ref: '#/components/schemas/Service'
+          minItems: 1
+        updatedAt:
+          type: string
+          format: date-time
+        createdAt:
+          type: string
+          format: date-time
+
+    HomepageConfigUpdate:
+      type: object
+      properties:
+        selectedTheme:
+          type: integer
+          minimum: 1
+          maximum: 10
+        services:
+          type: array
+          items:
+            type: object
+            required:
+              - id
+            properties:
+              id:
+                type: string
+              affiliateLink:
+                type: string
+                format: uri
+              isActive:
+                type: boolean
+
+    HomepageConfigResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        data:
+          $ref: '#/components/schemas/HomepageConfig'
+
+    ErrorResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: false
+        error:
+          type: string
+          example: Validation failed
