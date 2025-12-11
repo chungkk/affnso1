@@ -13,6 +13,22 @@ const AdminSchema = new mongoose.Schema({
   lastLoginAt: { type: Date, default: null },
 }, { timestamps: true })
 
+const ServiceSchema = new mongoose.Schema({
+  id: { type: String, required: true },
+  name: { type: String, required: true, maxlength: 50 },
+  description: { type: String, required: true, maxlength: 200 },
+  affiliateLink: { type: String, default: '' },
+  icon: { type: String, required: true },
+  isActive: { type: Boolean, default: true },
+  order: { type: Number, default: 0 },
+}, { _id: false })
+
+const HomepageConfigSchema = new mongoose.Schema({
+  _id: { type: String, default: 'homepage' },
+  selectedTheme: { type: Number, required: true, min: 1, max: 10, default: 1 },
+  services: { type: [ServiceSchema], required: true },
+}, { timestamps: true })
+
 async function seed() {
   console.log('Connecting to MongoDB...')
   await mongoose.connect(MONGODB_URI)
@@ -36,6 +52,48 @@ async function seed() {
   console.log(`Admin user "${ADMIN_USERNAME}" created successfully.`)
   console.log('Default password:', ADMIN_PASSWORD)
   console.log('Please change the password after first login!')
+
+  // Seed HomepageConfig
+  const HomepageConfig = mongoose.models.HomepageConfig || mongoose.model('HomepageConfig', HomepageConfigSchema)
+
+  await HomepageConfig.deleteOne({ _id: 'homepage' })
+  console.log('Cleared existing homepage config')
+
+  await HomepageConfig.create({
+    _id: 'homepage',
+    selectedTheme: 1,
+    services: [
+      {
+        id: 'domain',
+        name: 'Domain Registration',
+        description: 'Register your perfect domain name at competitive prices',
+        affiliateLink: '',
+        icon: '🌐',
+        isActive: true,
+        order: 1,
+      },
+      {
+        id: 'hosting',
+        name: 'Web Hosting',
+        description: 'Fast, reliable hosting with 99.9% uptime guarantee',
+        affiliateLink: '',
+        icon: '🚀',
+        isActive: true,
+        order: 2,
+      },
+      {
+        id: 'ssl',
+        name: 'SSL Certificates',
+        description: 'Secure your website with industry-standard encryption',
+        affiliateLink: '',
+        icon: '🔒',
+        isActive: true,
+        order: 3,
+      },
+    ],
+  })
+
+  console.log('Homepage config created with default services')
 
   await mongoose.disconnect()
   console.log('Disconnected from MongoDB')

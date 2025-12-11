@@ -8,6 +8,9 @@ const inter = Inter({ subsets: ['latin'] })
 export const metadata: Metadata = {
   title: 'Network Solutions - Domain, Hosting & SSL',
   description: 'Get the best deals on domain registration, web hosting, and SSL certificates',
+  other: {
+    'impact-site-verification': '-896474247',
+  },
 }
 
 export default function RootLayout({

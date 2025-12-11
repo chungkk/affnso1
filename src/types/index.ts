@@ -72,3 +72,31 @@ export interface TemplateProps {
   page: ILandingPage
   onCtaClick?: () => void
 }
+
+export interface IService {
+  id: string
+  name: string
+  description: string
+  affiliateLink: string
+  icon: string
+  isActive: boolean
+  order: number
+}
+
+export interface IHomepageConfig {
+  _id: string
+  selectedTheme: TemplateId
+  services: IService[]
+  createdAt?: Date
+  updatedAt?: Date
+}
+
+export interface HomepageConfigInput {
+  selectedTheme?: TemplateId
+  services?: Partial<IService>[]
+}
+
+export interface HomepageTemplateProps {
+  config: IHomepageConfig
+  onCtaClick?: (serviceId: string) => void
+}

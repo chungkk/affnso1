@@ -43,6 +43,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
     { name: 'Dashboard', href: '/admin' },
     { name: 'Pages', href: '/admin/pages' },
     { name: 'Statistics', href: '/admin/stats' },
+    { name: 'Settings', href: '/admin/settings' },
   ]
 
   const handleSignOut = async () => {
